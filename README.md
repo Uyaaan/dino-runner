@@ -45,4 +45,3 @@ The player controls a dinosaur running through 3D lanes, dodging cacti, jumping 
   Scenes/     (Main.unity)
   Scripts/    (C# scripts)
   UI/         (HUD, menus)
----
