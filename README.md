@@ -29,3 +29,19 @@ The player controls a dinosaur running through 3D lanes, dodging cacti, jumping 
    git clone https://github.com/Uyaaan/dino-runner.git
    cd dino-runner
    git lfs install
+
+2. Open with Unity Hub (Unity 6000.1.15f1)
+3. Open the Scene:
+   Assets/Scenes/Main.unity
+4.	Press ▶️ Play.
+
+---
+🌳 Project Structure
+Assets/
+  Art/        (models, textures)
+  Materials/  (materials/shaders)
+  Prefabs/    (track tiles, obstacles, player)
+  Scenes/     (Main.unity)
+  Scripts/    (C# scripts)
+  UI/         (HUD, menus)
+---
