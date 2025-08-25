@@ -1,4 +1,4 @@
-cat << 'EOF' > README.md
+README.md
 # 🦖 Dino Runner
 
 An endless runner game built with Unity, inspired by Chrome’s Dinosaur Game and Temple Run.  
