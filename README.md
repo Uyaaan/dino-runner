@@ -36,7 +36,7 @@ The player controls a dinosaur running through 3D lanes, dodging cacti, jumping 
 4.	Press ▶️ Play.
 
 ---
-🌳 Project Structure
+## 🌳 Project Structure
 Assets/
   Art/        (models, textures)
   Materials/  (materials/shaders)
