@@ -14,7 +14,7 @@ The player controls a dinosaur running through 3D lanes, dodging cacti, jumping 
 ---
 
 ## 🚀 Features (Planned)
-- 3-lane endless runner system
+- 5-lane endless runner system
 - Modular track generation with pooling
 - Obstacles: cactus, cliff gaps, low branches
 - Speed ramps up over time
