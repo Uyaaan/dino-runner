@@ -39,9 +39,9 @@ The player controls a dinosaur running through 3D lanes, dodging cacti, jumping 
 ## 🌳 Project Structure
 ```bash
   Assets/
-  Art/        (models, textures)
-  Materials/  (materials/shaders)
-  Prefabs/    (track tiles, obstacles, player)
-  Scenes/     (Main.unity)
-  Scripts/    (C# scripts)
-  UI/         (HUD, menus)
+     Art/        (models, textures)
+     Materials/  (materials/shaders)
+     Prefabs/    (track tiles, obstacles, player)
+     Scenes/     (Main.unity)
+     Scripts/    (C# scripts)
+     UI/         (HUD, menus)
