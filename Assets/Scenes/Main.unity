@@ -589,7 +589,7 @@ MonoBehaviour:
   count: 40
   width: 4
   thickness: 0.02
-  length: 4
+  length: 2
   yOffset: 0.01
   stripeMaterial: {fileID: 2100000, guid: 645020c9df9f5438989972d51f3f782e, type: 2}
   startZ: -10
