@@ -154,7 +154,7 @@ public class RunnerController : MonoBehaviour
     private void TryLane(int dir)
     {
         if (State == RunState.Dead) return;
-        currentLane = Mathf.Clamp(currentLane + dir, 0, 2);
+        currentLane = Mathf.Clamp(currentLane + dir, -1, 3);
     }
 
     private void TryJump()

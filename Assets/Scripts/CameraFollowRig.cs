@@ -14,6 +14,8 @@ public class CameraFollowRig : MonoBehaviour
     private Camera cam;
     private RunnerController runner;
 
+    public bool isGameOver = false;
+
     void Awake()
     {
         cam = GetComponent<Camera>();
@@ -43,7 +45,7 @@ public class CameraFollowRig : MonoBehaviour
         );
 
         // FOV adjustment based on player speed
-        if (runner != null)
+        if (runner != null && !isGameOver)
         {
             float t = Mathf.Clamp01(runner.Speed01);
             cam.fieldOfView = Mathf.Lerp(baseFov, maxFov, t);
