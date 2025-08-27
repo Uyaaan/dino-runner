@@ -1001,7 +1001,7 @@ GameObject:
   - component: {fileID: 1213149623}
   - component: {fileID: 1213149622}
   m_Layer: 0
-  m_Name: Player Placeholder
+  m_Name: Runner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

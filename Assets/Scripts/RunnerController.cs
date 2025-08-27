@@ -27,7 +27,11 @@ public class RunnerController : MonoBehaviour
     [Header("Grounding")]
     [SerializeField] private float groundedStick = -2f;   // small downward to stay grounded
 
-    public RunState State { get; private set; } = RunState.Running;
+    [Header("Run Start / Countdown")]
+    [SerializeField] private bool lockInputsUntilStart = true; // if true, ignore input until BeginRun() is called
+    private bool hasStarted = false;                           // set true by BeginRun() when 3-2-1 finishes
+
+    public RunState State { get; private set; } = RunState.Idle; // start idle; movement begins after countdown
     public float CurrentSpeed { get; private set; }
 
     // Expose 0..1 normalized speed for camera FOV rigs
@@ -61,12 +65,28 @@ public class RunnerController : MonoBehaviour
         baseHeight = cc.height;
         baseCenter = cc.center;
         currentLane = Mathf.Clamp(startingLane, 0, 2);
-        CurrentSpeed = startSpeed;
+        CurrentSpeed = 0f;  // don’t move until BeginRun()
+        if (!lockInputsUntilStart)
+        {
+            hasStarted = true;
+            State = RunState.Running;
+            CurrentSpeed = startSpeed;
+        }
     }
 
     private void Update()
     {
         if (State == RunState.Dead) return;
+
+        // If we haven’t started (waiting for 3-2-1), freeze input and forward motion
+        if (!hasStarted)
+        {
+            // allow gravity so we stay grounded, but no lateral/forward movement
+            if (cc.isGrounded && verticalVel < 0f) verticalVel = groundedStick; else verticalVel += gravity * Time.deltaTime;
+            Vector3 settle = new Vector3(0f, verticalVel * Time.deltaTime, 0f);
+            cc.Move(settle);
+            return;
+        }
 
         // --- INPUT: New Input System (polling) or Legacy fallback ---
 #if ENABLE_INPUT_SYSTEM
@@ -176,6 +196,32 @@ public class RunnerController : MonoBehaviour
         sliding = false;
 
         if (cc.isGrounded) State = RunState.Running;
+    }
+
+    // Call to start "running" after 3-2-1 countdown
+    public void BeginRun()
+    {
+        hasStarted = true;
+        State = RunState.Running;
+        CurrentSpeed = Mathf.Max(CurrentSpeed, startSpeed);
+    }
+
+    // Optional: call when restarting the round or returning to title.
+    public void ResetRun()
+    {
+        hasStarted = false;
+        State = RunState.Idle;
+        CurrentSpeed = 0f;
+        verticalVel = 0f;
+        currentLane = Mathf.Clamp(startingLane, 0, 2);
+        // restore crouch state if needed
+        if (sliding)
+        {
+            cc.height = baseHeight;
+            cc.center = baseCenter;
+            sliding = false;
+            crouchHeld = false;
+        }
     }
 
     // Allow TrackManager / difficulty ramp to set speed
