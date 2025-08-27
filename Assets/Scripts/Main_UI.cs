@@ -1,12 +1,18 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 using System;
+using System.Collections;
 
 public class Main_UI : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI Timer;
     [SerializeField] private TextMeshProUGUI Distance;
     [SerializeField] private Transform player;
+    [SerializeField] private Image Countdown_Image;
+    [SerializeField] private Sprite[] Countdown_Sprites;
+    [SerializeField] private float Countdown_Delay = 1f;
+    public bool Countdown_Finished { get; private set; } = false;
     private float timer;
     // private int distance = 0;
     private Vector3 startPos;
@@ -14,32 +20,54 @@ public class Main_UI : MonoBehaviour
     void Start()
     {
         startPos = player.position;
+        StartCoroutine(PlayCountdown());
     }
 
     // Update is called once per frame
     void Update()
     {
-        timer += Time.deltaTime;
-        UI_Update();
-        Distance_Update();
+        if (Countdown_Finished)
+        {
+            timer += Time.deltaTime;
+            UI_Update();
+            Distance_Update();
+        }
+        
+    }
+
+    IEnumerator PlayCountdown()
+    {
+        Countdown_Image.enabled = true;
+        for (int a = 0; a < Countdown_Sprites.Length; a++)
+        {
+            Countdown_Image.sprite = Countdown_Sprites[a];
+            yield return new WaitForSeconds(Countdown_Delay);
+        }
+
+        Countdown_Image.enabled = false;
+        Countdown_Finished = true;
     }
 
     void UI_Update()
     {
-        TimeSpan timeSpan = TimeSpan.FromSeconds(timer);
-        // Distance.text = distance.ToString();
-        if (timeSpan.Hours > 0)
+        if (Countdown_Finished)
         {
-            // Show hours if not zero → hh:mm:ss.ms
-            Timer.text = string.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds, timeSpan.Milliseconds);
+            TimeSpan timeSpan = TimeSpan.FromSeconds(timer);
+            // Distance.text = distance.ToString();
+            if (timeSpan.Hours > 0)
+            {
+                // Show hours if not zero → hh:mm:ss.ms
+                Timer.text = string.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+                    timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds, timeSpan.Milliseconds);
+            }
+            else
+            {
+                // Hide hours → mm:ss.ms
+                Timer.text = string.Format("{0:00}:{1:00}.{2:00}",
+                    timeSpan.Minutes, timeSpan.Seconds, timeSpan.Milliseconds);
+            }
         }
-        else
-        {
-            // Hide hours → mm:ss.ms
-            Timer.text = string.Format("{0:00}:{1:00}.{2:00}",
-                timeSpan.Minutes, timeSpan.Seconds, timeSpan.Milliseconds);
-        }
+        
     }
 
     void Distance_Update()
