@@ -4,6 +4,7 @@ using TMPro;
 using System;
 using System.Collections;
 
+
 public class Main_UI : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI Timer;
@@ -12,6 +13,9 @@ public class Main_UI : MonoBehaviour
     [SerializeField] private Image Countdown_Image;
     [SerializeField] private Sprite[] Countdown_Sprites;
     [SerializeField] private float Countdown_Delay = 1f;
+    [SerializeField] private RunnerController playerController;
+    [SerializeField] private AudioSource Music_Source;
+    [SerializeField] private AudioClip[] Music_Clips;
     public bool Countdown_Finished { get; private set; } = false;
     private float timer;
     // private int distance = 0;
@@ -41,11 +45,20 @@ public class Main_UI : MonoBehaviour
         for (int a = 0; a < Countdown_Sprites.Length; a++)
         {
             Countdown_Image.sprite = Countdown_Sprites[a];
+            if (a == 3)
+            {
+                playerController.BeginRun();
+                Countdown_Finished = true;
+                int RandomIndex = UnityEngine.Random.Range(0, Music_Clips.Length);
+                Music_Source.clip = Music_Clips[RandomIndex];
+                Music_Source.Play();
+            }
             yield return new WaitForSeconds(Countdown_Delay);
         }
 
         Countdown_Image.enabled = false;
-        Countdown_Finished = true;
+        
+       
     }
 
     void UI_Update()
