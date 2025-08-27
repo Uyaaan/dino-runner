@@ -1135,7 +1135,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8cade479d8adc4dbdb00cf2e85e24194, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  laneWidth: 2
+  laneWidth: 5
   startingLane: 1
   laneChangeSpeed: 12
   startSpeed: 10

@@ -1,6 +1,6 @@
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
+using UnityEngine.InputSystem; // New Input System polling support
 #endif
 
 [RequireComponent(typeof(CharacterController))]
@@ -9,56 +9,53 @@ public class RunnerController : MonoBehaviour
     public enum RunState { Idle, Running, Jumping, Crouched, Dead }
 
     [Header("Lanes")]
-    [SerializeField] private float laneWidth = 2.0f;    // positions: -laneWidth, 0, +laneWidth
-    [SerializeField] private int startingLane = 1;      // 0=Left, 1=Center, 2=Right
-    [SerializeField] private float laneChangeSpeed = 12f; // lateral tween speed
+    [SerializeField] private float laneWidth = 2.0f;      // world-space lane spacing
+    [SerializeField] private int startingLane = 1;        // 0=Left, 1=Center, 2=Right
+    [SerializeField] private float laneChangeSpeed = 12f; // lateral tween speed (units/second)
 
     [Header("Movement")]
     [SerializeField] private float startSpeed = 8f;
-    [SerializeField] private float maxSpeed = 18f;      // used by camera FOV later
+    [SerializeField] private float maxSpeed = 18f;
     [SerializeField] private float gravity = -30f;
     [SerializeField] private float jumpForce = 10.5f;
-    [SerializeField] private float coyoteTime = 0.12f;  // grace window after leaving ground
+    [SerializeField] private float coyoteTime = 0.12f;    // grace window after stepping off ledge
 
     [Header("Crouch / Slide")]
-    [SerializeField] private float slideDuration = 0.55f;
-    [SerializeField] private float crouchHeightScale = 0.5f;
+    [SerializeField] private float slideDuration = 0.55f; // short-press slide time
+    [SerializeField] private float crouchHeightScale = 0.5f; // 0..1
 
     [Header("Grounding")]
-    [SerializeField] private float groundedStick = -2f; // keeps controller grounded
+    [SerializeField] private float groundedStick = -2f;   // small downward to stay grounded
 
     public RunState State { get; private set; } = RunState.Running;
     public float CurrentSpeed { get; private set; }
 
-    // expose 0..1 speed for camera FOV
-    public float Speed01 => Mathf.InverseLerp(startSpeed, maxSpeed, CurrentSpeed);
+    // Expose 0..1 normalized speed for camera FOV rigs
+    public float Speed01 => Mathf.InverseLerp(0f, Mathf.Max(0.01f, maxSpeed), CurrentSpeed);
 
-    CharacterController cc;
-    int currentLane; // 0,1,2
-    float verticalVel;
-    float coyoteTimer;
-    bool crouchHeld;
-    bool sliding;
-    float slideTimer;
-    float baseHeight;
-    Vector3 baseCenter;
+    private CharacterController cc;
+    private int currentLane;        // 0,1,2
+    private float verticalVel;      // Y velocity
+    private float coyoteTimer;
+    private bool crouchHeld;
+    private bool sliding;
+    private float slideTimer;
+    private float baseHeight;
+    private Vector3 baseCenter;
 
 #if ENABLE_INPUT_SYSTEM
-    // Optional: hook these via PlayerInput if you like
+    // Optional callbacks if using PlayerInput component with actions bound
     public void OnMoveLeft(InputAction.CallbackContext ctx)  { if (ctx.performed) TryLane(-1); }
     public void OnMoveRight(InputAction.CallbackContext ctx) { if (ctx.performed) TryLane(+1); }
-    public void OnJump(InputAction.CallbackContext ctx)
-    {
-        if (ctx.performed) TryJump();
-    }
+    public void OnJump(InputAction.CallbackContext ctx)      { if (ctx.performed) TryJump(); }
     public void OnCrouch(InputAction.CallbackContext ctx)
     {
-        if (ctx.started) StartCrouchOrSlide();
+        if (ctx.started)  StartCrouchOrSlide();
         if (ctx.canceled) EndCrouch();
     }
 #endif
 
-    void Awake()
+    private void Awake()
     {
         cc = GetComponent<CharacterController>();
         baseHeight = cc.height;
@@ -67,55 +64,80 @@ public class RunnerController : MonoBehaviour
         CurrentSpeed = startSpeed;
     }
 
-    void Update()
+    private void Update()
     {
         if (State == RunState.Dead) return;
 
+        // --- INPUT: New Input System (polling) or Legacy fallback ---
+#if ENABLE_INPUT_SYSTEM
+        if (Keyboard.current != null)
+        {
+            // Lane switch
+            if (Keyboard.current.aKey.wasPressedThisFrame || Keyboard.current.leftArrowKey.wasPressedThisFrame)
+                TryLane(-1);
+            if (Keyboard.current.dKey.wasPressedThisFrame || Keyboard.current.rightArrowKey.wasPressedThisFrame)
+                TryLane(+1);
 
-        // Coyote timer
-        if (cc.isGrounded) coyoteTimer = coyoteTime;
-        else coyoteTimer -= Time.deltaTime;
+            // Jump
+            if (Keyboard.current.spaceKey.wasPressedThisFrame)
+                TryJump();
 
-        // Slide timing (short-press slide, or hold to stay crouched)
+            // Crouch/Slide (hold to crouch)
+            if (Keyboard.current.leftCtrlKey.wasPressedThisFrame)
+                StartCrouchOrSlide();
+            if (Keyboard.current.leftCtrlKey.wasReleasedThisFrame)
+                EndCrouch();
+        }
+#else
+        // Legacy Input Manager
+        if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) TryLane(-1);
+        if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) TryLane(+1);
+        if (Input.GetKeyDown(KeyCode.Space)) TryJump();
+        if (Input.GetKeyDown(KeyCode.LeftControl)) StartCrouchOrSlide();
+        if (Input.GetKeyUp(KeyCode.LeftControl))   EndCrouch();
+#endif
+
+        // --- COYOTE TIMER ---
+        if (cc.isGrounded) coyoteTimer = coyoteTime; else coyoteTimer -= Time.deltaTime;
+
+        // --- SLIDE TIMER ---
         if (sliding)
         {
             slideTimer -= Time.deltaTime;
             if (slideTimer <= 0f && !crouchHeld) EndCrouch();
         }
 
-        // Vertical motion
+        // --- VERTICAL MOTION ---
         if (cc.isGrounded && verticalVel < 0f)
-            verticalVel = groundedStick; // small downward force to stick to ground
+            verticalVel = groundedStick;
         else
             verticalVel += gravity * Time.deltaTime;
 
-        // Lateral lane target (X world position)
+        // --- LATERAL LANE TWEEN ---
         float targetX = (currentLane - 1) * laneWidth; // lanes: 0->-laneWidth, 1->0, 2->+laneWidth
         Vector3 pos = transform.position;
-        float newX = Mathf.MoveTowards(pos.x, targetX, laneChangeSpeed * Time.deltaTime);
+        float nextX = Mathf.MoveTowards(pos.x, targetX, laneChangeSpeed * Time.deltaTime);
 
-        // Forward speed is constant here; later TrackManager can set CurrentSpeed externally
+        // Clamp forward speed (TrackManager can call SetSpeed to ramp)
         CurrentSpeed = Mathf.Clamp(CurrentSpeed, startSpeed, maxSpeed);
 
-        // Compose motion
-        Vector3 move = new Vector3(newX - pos.x, 0f, CurrentSpeed * Time.deltaTime);
-        move.y = verticalVel * Time.deltaTime;
+        // Compose frame displacement; CharacterController.Move expects *distance this frame*
+        Vector3 frameMove = new Vector3(nextX - pos.x, verticalVel * Time.deltaTime, CurrentSpeed * Time.deltaTime);
+        cc.Move(frameMove);
 
-        // CharacterController.Move expects units this frame, not velocity
-        cc.Move(new Vector3(move.x, move.y, CurrentSpeed * Time.deltaTime));
-
-        // Update state
+        // --- STATE UPDATE ---
         if (cc.isGrounded && State != RunState.Crouched)
             State = RunState.Running;
     }
 
-    void TryLane(int dir)
+    // --- COMMANDS ---
+    private void TryLane(int dir)
     {
         if (State == RunState.Dead) return;
         currentLane = Mathf.Clamp(currentLane + dir, 0, 2);
     }
 
-    void TryJump()
+    private void TryJump()
     {
         if (State == RunState.Dead) return;
         if (State == RunState.Crouched) return; // no jump while crouched
@@ -127,14 +149,14 @@ public class RunnerController : MonoBehaviour
         }
     }
 
-    void StartCrouchOrSlide()
+    private void StartCrouchOrSlide()
     {
         if (State == RunState.Dead) return;
         crouchHeld = true;
 
-        if (!sliding) // apply once
+        if (!sliding)
         {
-            // shrink controller
+            // Shrink controller (keeps feet roughly planted by lowering center)
             cc.height = baseHeight * crouchHeightScale;
             cc.center = new Vector3(baseCenter.x, baseCenter.y * crouchHeightScale, baseCenter.z);
             sliding = true;
@@ -143,27 +165,26 @@ public class RunnerController : MonoBehaviour
         State = RunState.Crouched;
     }
 
-    void EndCrouch()
+    private void EndCrouch()
     {
         crouchHeld = false;
         if (!sliding) return;
 
-        // restore controller
+        // Restore controller
         cc.height = baseHeight;
         cc.center = baseCenter;
         sliding = false;
 
-        // return to running state if grounded
         if (cc.isGrounded) State = RunState.Running;
     }
 
-    // Utility for other systems (e.g., TrackManager) to push speed
+    // Allow TrackManager / difficulty ramp to set speed
     public void SetSpeed(float newSpeed)
     {
         CurrentSpeed = Mathf.Clamp(newSpeed, 0f, maxSpeed);
     }
 
-    // Simple kill for testing collisions later
+    // Simple kill for testing collisions
     public void Die()
     {
         State = RunState.Dead;
