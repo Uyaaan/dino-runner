@@ -2104,10 +2104,10 @@ MonoBehaviour:
   laneChangeSpeed: 12
   startSpeed: 50
   maxSpeed: 200
-  gravity: -30
-  jumpForce: 10.5
+  gravity: -10
+  jumpForce: 130.5
   coyoteTime: 0.12
-  slideDuration: 0.55
+  slideDuration: 0.25
   crouchHeightScale: 0.5
   groundedStick: -2
   lockInputsUntilStart: 1
