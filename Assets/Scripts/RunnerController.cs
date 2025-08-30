@@ -1,11 +1,12 @@
-using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
+using UnityEngine;
 using UnityEngine.InputSystem; // New Input System polling support
 #endif
 
 [RequireComponent(typeof(CharacterController))]
 public class RunnerController : MonoBehaviour
 {
+    Animator animator;
     public enum RunState { Idle, Running, Jumping, Crouched, Dead }
 
     [Header("Lanes")]
@@ -61,6 +62,7 @@ public class RunnerController : MonoBehaviour
 
     private void Awake()
     {
+        animator = GetComponentInChildren<Animator>();
         cc = GetComponent<CharacterController>();
         baseHeight = cc.height;
         baseCenter = cc.center;
@@ -166,6 +168,8 @@ public class RunnerController : MonoBehaviour
             verticalVel = jumpForce;
             State = RunState.Jumping;
             coyoteTimer = 0f;
+            animator.SetTrigger("Jump");
+            Debug.Log("Jumping");
         }
     }
 
