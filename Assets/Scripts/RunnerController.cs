@@ -48,6 +48,9 @@ public class RunnerController : MonoBehaviour
     private float baseHeight;
     private Vector3 baseCenter;
 
+    [SerializeField] private Main_UI UI;
+
+
 #if ENABLE_INPUT_SYSTEM
     // Optional callbacks if using PlayerInput component with actions bound
     public void OnMoveLeft(InputAction.CallbackContext ctx)  { if (ctx.performed) TryLane(-1); }
@@ -116,7 +119,7 @@ public class RunnerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) TryLane(+1);
         if (Input.GetKeyDown(KeyCode.Space)) TryJump();
         if (Input.GetKeyDown(KeyCode.LeftControl)) StartCrouchOrSlide();
-        if (Input.GetKeyUp(KeyCode.LeftControl))   EndCrouch();
+        if (Input.GetKeyUp(KeyCode.LeftControl)) EndCrouch();
 #endif
 
         // --- COYOTE TIMER ---
@@ -208,6 +211,7 @@ public class RunnerController : MonoBehaviour
         hasStarted = true;
         State = RunState.Running;
         CurrentSpeed = Mathf.Max(CurrentSpeed, startSpeed);
+        animator.SetBool("Running", true);
     }
 
     // Optional: call when restarting the round or returning to title.
@@ -239,5 +243,20 @@ public class RunnerController : MonoBehaviour
     {
         State = RunState.Dead;
         CurrentSpeed = 0f;
+        Debug.Log("Player has died.");
+        animator.SetTrigger("Die");
+        animator.SetBool("Running", false);
+    }
+    
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Obstacle"))
+        {
+            Debug.Log("Collided with obstacle and died.");
+            Die();
+            
+            UI.GameOver();
+            animator.SetBool("Running", false);
+        }
     }
 }

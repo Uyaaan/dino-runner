@@ -15,6 +15,7 @@ public class CameraFollowRig : MonoBehaviour
     private RunnerController runner;
 
     public bool isGameOver = false;
+    private bool stopFollowing = false;
 
     void Awake()
     {
@@ -26,29 +27,36 @@ public class CameraFollowRig : MonoBehaviour
     void LateUpdate()
     {
         if (!target) return;
-
-        // Smooth position follow
-        Vector3 desired = target.position + target.TransformVector(offset);
-        transform.position = Vector3.Lerp(
-            transform.position,
-            desired,
-            1f - Mathf.Exp(-followLerp * Time.deltaTime)
-        );
-
-        // Smooth rotation to look at player
-        Vector3 lookPoint = target.position + Vector3.up * 1.2f;
-        Quaternion lookRot = Quaternion.LookRotation(lookPoint - transform.position);
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            lookRot,
-            1f - Mathf.Exp(-followLerp * Time.deltaTime)
-        );
-
-        // FOV adjustment based on player speed
-        if (runner != null && !isGameOver)
+        if (!stopFollowing)
         {
-            float t = Mathf.Clamp01(runner.Speed01);
-            cam.fieldOfView = Mathf.Lerp(baseFov, maxFov, t);
+            // Smooth position follow
+            Vector3 desired = target.position + target.TransformVector(offset);
+            transform.position = Vector3.Lerp(
+                transform.position,
+                desired,
+                1f - Mathf.Exp(-followLerp * Time.deltaTime)
+            );
+
+            // Smooth rotation to look at player
+            Vector3 lookPoint = target.position + Vector3.up * 1.2f;
+            Quaternion lookRot = Quaternion.LookRotation(lookPoint - transform.position);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                lookRot,
+                1f - Mathf.Exp(-followLerp * Time.deltaTime)
+            );
+
+            // FOV adjustment based on player speed
+            if (runner != null && !isGameOver)
+            {
+                float t = Mathf.Clamp01(runner.Speed01);
+                cam.fieldOfView = Mathf.Lerp(baseFov, maxFov, t);
+            }
         }
+    }
+
+    public void StopFollow(bool stop)
+    {
+        stopFollowing = stop;
     }
 }
